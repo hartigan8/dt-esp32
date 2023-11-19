@@ -134,6 +134,7 @@ void loop() {
 
         // Create HTTP POST request
         client.println("POST /water HTTP/1.1");
+        client.println("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDAzMTI2NzksImV4cCI6MTcwMDMxMzY3OX0.XNpqe7Mjdf5Jaxl_yplH5wxc29Xj5GrMUxTOgUrneKU")
         client.println("Host: deudtchronicillness.eastus2.cloudapp.azure.com");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
