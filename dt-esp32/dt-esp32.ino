@@ -1,12 +1,16 @@
+#include <NimBLEDevice.h>
 #include <WiFiClientSecure.h>
 #include <Arduino_JSON.h>
 #define SENSOR 27
 
+NimBLEScan* pBLEScan;
+
 //wifi name
-const char* ssid = "TURKSAT-KABLONET-7ABA-2.4G";
+const char* ssid = "Zyxel_4A61";
+const char* unit_kg="2";
 
 //wifi password
-const char* password = "";
+const char* password = "QXLYLP83ML";
 const char* server = "deudtchronicillness.eastus2.cloudapp.azure.com";
 const int httpsPort = 443;
 
@@ -57,14 +61,140 @@ int totalMilliLitres;
 bool flows = false;
 uint32_t value = 0;
 
+void sendPosts(String data, String endof){
+
+}
+
 void IRAM_ATTR pulseCounter() {
   pulseCount++;
 }
 
+String payloadToString(const uint8_t* payload, size_t length) {
+    String result = "";
+    for (size_t i = 0; i < length; i++) {
+        char hex[3];
+        sprintf(hex, "%02X", payload[i]);
+        result += hex;
+    }
+    return result;
+
+}
+
+float rawDataKG(String data){
+  String kg = data.substring(8,12);
+  long decimalValue = strtol(kg.c_str(), NULL, 16);
+  char* point = ".";
+  String stringKg = String(decimalValue);
+  char lastChar = stringKg.charAt(stringKg.length() - 1);
+  stringKg =   stringKg.substring(0,stringKg.length()-1) + point + lastChar;
+  return stringKg.toFloat();
+}
+
+String unitOfMeasure(String data){
+  String unit = data.substring(20,21);
+  if(unit.equals(unit_kg)){
+    return "kg";
+  }
+  else{
+    return "pound";
+  }
+
+}
+
+int measureDone(String data){
+  String measured = data.substring(21,22);
+  return measured.toInt();
+}
+
+/*class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
+    void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
+       if (advertisedDevice->haveName() &&
+            advertisedDevice->getName() == "OMIYA-C39-HW" &&
+            advertisedDevice->getAddress().equals(NimBLEAddress("0c:95:41:00:00:23"))) { 
+            String rawData = payloadToString(advertisedDevice->getPayload(), advertisedDevice->getPayloadLength());
+            Serial.println(rawData);
+            
+            // Create a JSON object to store your data
+        JSONVar myObject;
+
+        if(measureDone(rawData) == 1 ){
+            //jsonDoc["device_name"] =  "OMIYA-C39-HW"; //advertisedDevice->getName();
+              myObject["id"] = 1;
+              myObject["measure"] = rawDataKG(rawData);
+              myObject["unit"] = unitOfMeasure(rawData);
+            String jsonObject = JSON.stringify(myObject);
+            Serial.print(jsonObject);
+            
+
+            
+
+
+
+
+       client.setCACert(test_root_ca);
+
+      if (!client.connect(server, httpsPort)) {
+        Serial.println("Connection failed!");
+      } else {
+        Serial.println("Connected to server!");
+
+ 
+
+        // Create HTTP POST request
+        client.println("POST /weight HTTP/1.1");
+        client.println("Host: deudtchronicillness.eastus2.cloudapp.azure.com");
+        client.println("Content-Type: application/json");
+        client.print("Content-Length: ");
+        client.println(jsonObject.length());
+        client.println();
+        client.println(jsonObject);
+
+        // Wait for the server's response
+        while (client.connected()) {
+          String line = client.readStringUntil('\n');
+          if (line == "\r") {
+            Serial.println("Headers received");
+            break;
+          }
+        }
+
+        // Read the server's response
+        while (client.available()) {
+          char c = client.read();
+          Serial.write(c);
+        }
+
+        client.stop();
+      }
+       
+    }
+
+            }
+        }
+    }; */
+
 void setup() {
   Serial.begin(115200);
+
+
   delay(100);
   
+
+ // NimBLEDevice::setScanFilterMode(CONFIG_BTDM_SCAN_DUPL_TYPE_DEVICE);
+
+  //NimBLEDevice::setScanDuplicateCacheSize(200);
+
+//  NimBLEDevice::init("");
+
+  //pBLEScan = NimBLEDevice::getScan(); //create new scan
+  // Set the callback for when devices are discovered, no duplicates.
+ // pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks(), false);
+  //pBLEScan->setActiveScan(true); // Set active scanning, this will get more data from the advertiser.
+  //pBLEScan->setInterval(97); // How often the scan occurs / switches channels; in milliseconds,
+  //pBLEScan->setWindow(37);  // How long to scan during the interval; in milliseconds.
+  //pBLEScan->setMaxResults(0); // do not store the scan results, use callback only.
+
+
   pinMode(SENSOR, INPUT_PULLUP);
 
   pulseCount = 0;
@@ -73,6 +203,8 @@ void setup() {
   totalMilliLitres = 0;
   previousMillis = 0;
   attachInterrupt(digitalPinToInterrupt(SENSOR), pulseCounter, FALLING);
+
+
 
 
   WiFi.begin(ssid, password);
@@ -89,6 +221,11 @@ void setup() {
 
 void loop() {
   currentMillis = millis();
+
+/*    if(pBLEScan->isScanning() == false) {
+      // Start scan with: duration = 0 seconds(forever), no scan end callback, not a continuation of a previous scan.
+      pBLEScan->start(0, nullptr, false);
+  }*/
   
   if (currentMillis - previousMillis > interval) {
 
@@ -118,6 +255,9 @@ void loop() {
     // flow ended
     else if(flowMilliLitres == 0 && flows){
 
+
+      
+      
         client.setCACert(test_root_ca);
 
       if (!client.connect(server, httpsPort)) {
@@ -134,7 +274,6 @@ void loop() {
 
         // Create HTTP POST request
         client.println("POST /water HTTP/1.1");
-        client.println("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDAzMTI2NzksImV4cCI6MTcwMDMxMzY3OX0.XNpqe7Mjdf5Jaxl_yplH5wxc29Xj5GrMUxTOgUrneKU")
         client.println("Host: deudtchronicillness.eastus2.cloudapp.azure.com");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
