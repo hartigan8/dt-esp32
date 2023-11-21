@@ -1,6 +1,8 @@
+
 #include <NimBLEDevice.h>
 #include <WiFiClientSecure.h>
 #include <Arduino_JSON.h>
+
 #define SENSOR 27
 
 NimBLEScan* pBLEScan;
@@ -61,9 +63,7 @@ int totalMilliLitres;
 bool flows = false;
 uint32_t value = 0;
 
-void sendPosts(String data, String endof){
 
-}
 
 void IRAM_ATTR pulseCounter() {
   pulseCount++;
@@ -87,7 +87,7 @@ float rawDataKG(String data){
   String stringKg = String(decimalValue);
   char lastChar = stringKg.charAt(stringKg.length() - 1);
   stringKg =   stringKg.substring(0,stringKg.length()-1) + point + lastChar;
-  return stringKg.toFloat();
+  return stringKg.toInt();
 }
 
 String unitOfMeasure(String data){
@@ -106,49 +106,25 @@ int measureDone(String data){
   return measured.toInt();
 }
 
-/*class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
-    void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
-       if (advertisedDevice->haveName() &&
-            advertisedDevice->getName() == "OMIYA-C39-HW" &&
-            advertisedDevice->getAddress().equals(NimBLEAddress("0c:95:41:00:00:23"))) { 
-            String rawData = payloadToString(advertisedDevice->getPayload(), advertisedDevice->getPayloadLength());
-            Serial.println(rawData);
-            
-            // Create a JSON object to store your data
-        JSONVar myObject;
+void sendAPI(String data, String endPoint){
 
-        if(measureDone(rawData) == 1 ){
-            //jsonDoc["device_name"] =  "OMIYA-C39-HW"; //advertisedDevice->getName();
-              myObject["id"] = 1;
-              myObject["measure"] = rawDataKG(rawData);
-              myObject["unit"] = unitOfMeasure(rawData);
-            String jsonObject = JSON.stringify(myObject);
-            Serial.print(jsonObject);
-            
-
-            
-
-
-
-
-       client.setCACert(test_root_ca);
+        client.setCACert(test_root_ca);
 
       if (!client.connect(server, httpsPort)) {
         Serial.println("Connection failed!");
+
       } else {
         Serial.println("Connected to server!");
 
- 
 
         // Create HTTP POST request
-        client.println("POST /weight HTTP/1.1");
+        client.println("POST /"+endPoint+ " HTTP/1.1");
         client.println("Host: deudtchronicillness.eastus2.cloudapp.azure.com");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
-        client.println(jsonObject.length());
+        client.println(data.length());
         client.println();
-        client.println(jsonObject);
-
+        client.println(data);
         // Wait for the server's response
         while (client.connected()) {
           String line = client.readStringUntil('\n');
@@ -163,15 +139,40 @@ int measureDone(String data){
           char c = client.read();
           Serial.write(c);
         }
-
         client.stop();
       }
-       
+
+
+
+}
+
+class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
+    void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
+       if (advertisedDevice->haveName() &&
+            advertisedDevice->getName() == "OMIYA-C39-HW" &&
+            advertisedDevice->getAddress().equals(NimBLEAddress("0c:95:41:00:00:23"))) { 
+            String rawData = payloadToString(advertisedDevice->getPayload(), advertisedDevice->getPayloadLength());
+            
+
+
+        JSONVar weightjson;
+
+        if(measureDone(rawData) == 1 ){
+            //jsonDoc["device_name"] =  "OMIYA-C39-HW"; //advertisedDevice->getName();
+              weightjson["id"] = 1;
+              weightjson["measure"] = rawDataKG(rawData);
+              weightjson["unit"] = unitOfMeasure(rawData);
+              weightjson["time"] = 12321321;
+            String weightjsonString = JSON.stringify(weightjson);
+            Serial.print(weightjsonString);
+   
+           // sendAPI(jsonData,"weight");
+
     }
 
             }
         }
-    }; */
+    }; 
 
 void setup() {
   Serial.begin(115200);
@@ -180,19 +181,19 @@ void setup() {
   delay(100);
   
 
- // NimBLEDevice::setScanFilterMode(CONFIG_BTDM_SCAN_DUPL_TYPE_DEVICE);
+  NimBLEDevice::setScanFilterMode(CONFIG_BTDM_SCAN_DUPL_TYPE_DEVICE);
 
-  //NimBLEDevice::setScanDuplicateCacheSize(200);
+  NimBLEDevice::setScanDuplicateCacheSize(200);
 
-//  NimBLEDevice::init("");
+  NimBLEDevice::init("");
 
-  //pBLEScan = NimBLEDevice::getScan(); //create new scan
-  // Set the callback for when devices are discovered, no duplicates.
- // pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks(), false);
-  //pBLEScan->setActiveScan(true); // Set active scanning, this will get more data from the advertiser.
-  //pBLEScan->setInterval(97); // How often the scan occurs / switches channels; in milliseconds,
-  //pBLEScan->setWindow(37);  // How long to scan during the interval; in milliseconds.
-  //pBLEScan->setMaxResults(0); // do not store the scan results, use callback only.
+  pBLEScan = NimBLEDevice::getScan(); //create new scan
+  //Set the callback for when devices are discovered, no duplicates.
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks(), false);
+  pBLEScan->setActiveScan(true); // Set active scanning, this will get more data from the advertiser.
+  pBLEScan->setInterval(97); // How often the scan occurs / switches channels; in milliseconds,
+  pBLEScan->setWindow(37);  // How long to scan during the interval; in milliseconds.
+  pBLEScan->setMaxResults(0); // do not store the scan results, use callback only.
 
 
   pinMode(SENSOR, INPUT_PULLUP);
@@ -203,7 +204,6 @@ void setup() {
   totalMilliLitres = 0;
   previousMillis = 0;
   attachInterrupt(digitalPinToInterrupt(SENSOR), pulseCounter, FALLING);
-
 
 
 
@@ -222,11 +222,11 @@ void setup() {
 void loop() {
   currentMillis = millis();
 
-/*    if(pBLEScan->isScanning() == false) {
+   if(pBLEScan->isScanning() == false) {
       // Start scan with: duration = 0 seconds(forever), no scan end callback, not a continuation of a previous scan.
       pBLEScan->start(0, nullptr, false);
-  }*/
-  
+  }
+
   if (currentMillis - previousMillis > interval) {
 
     pulse1Sec = pulseCount;
@@ -253,24 +253,24 @@ void loop() {
     }
 
     // flow ended
-    else if(flowMilliLitres == 0 && flows){
+    else if(1){
 
-
+        // Prepare your JSON data
+        JSONVar myObject;
+        myObject["id"] = 1;
+        myObject["time"] = 21312310;
+        myObject["volume"] = 12121;
+        String jsonObject = JSON.stringify(myObject);
       
-      
-        client.setCACert(test_root_ca);
+        sendAPI(jsonObject, "water");
+   /*     client.setCACert(test_root_ca);
 
       if (!client.connect(server, httpsPort)) {
         Serial.println("Connection failed!");
       } else {
         Serial.println("Connected to server!");
 
-        // Prepare your JSON data
-        JSONVar myObject;
-        myObject["id"] = 1;
-        myObject["time"] = 21312310;
-        myObject["volume"] = totalMilliLitres;
-        String jsonObject = JSON.stringify(myObject);
+
 
         // Create HTTP POST request
         client.println("POST /water HTTP/1.1");
@@ -297,7 +297,7 @@ void loop() {
         }
 
         client.stop();
-      }
+      }*/
        
     }
 
