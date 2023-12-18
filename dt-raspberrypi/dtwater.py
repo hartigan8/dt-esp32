@@ -4,10 +4,10 @@ import requests
 import RPi.GPIO as GPIO
 
 SENSOR_PIN = 17
-BUTTON_PIN = 18  # Assuming the button is connected to GPIO pin 18
+BUTTON_PIN = 18 
 current_millis = 0
 previous_millis = 0
-interval = 1  # seconds
+interval = 1000  # seconds
 calibration_factor = 50
 pulse_count = 0
 pulse_1_sec = 0
@@ -17,7 +17,7 @@ total_milliliters = 0
 flows = False
 json_data = {}
 url = "https://deudtchronicillness.eastus2.cloudapp.azure.com/water"
-token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDI4Mzk3MjUsImV4cCI6MjMwMjgzOTY2NX0.7JiVID9sT-IOkXo5d6UEtlquxvv0pyERHhY3zwk54u0"  # Replace with your actual access token
+token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDI4Mzk3MjUsImV4cCI6MjMwMjgzOTY2NX0.7JiVID9sT-IOkXo5d6UEtlquxvv0pyERHhY3zwk54u0"
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
