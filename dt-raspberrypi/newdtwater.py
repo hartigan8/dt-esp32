@@ -4,7 +4,7 @@ import requests
 import RPi.GPIO as GPIO
 
 SENSOR_PIN = 17
-BUTTON_PIN = 18 
+BUTTON_PIN = 18  # Assuming the button is connected to GPIO pin 18
 current_millis = 0
 previous_millis = 0
 interval = 1000  # seconds
@@ -16,8 +16,13 @@ flow_milliliters = 0
 total_milliliters = 0
 flows = False
 json_data = {}
-url = "https://deudtchronicillness.eastus2.cloudapp.azure.com/water"
-token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDI4Mzk3MjUsImV4cCI6MjMwMjgzOTY2NX0.7JiVID9sT-IOkXo5d6UEtlquxvv0pyERHhY3zwk54u0"
+url_login = "https://deudthealthcare.eastus.cloudapp.azure.com/auth/login"
+url_water = "https://deudthealthcare.eastus.cloudapp.azure.com/water"
+login_data = {
+    "email": "patient@patient.com",
+    "password": "pwd"
+}
+
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -47,12 +52,16 @@ while True:
         elif flow_milliliters == 0 and flows and button_state == GPIO.LOW:
             flows = False
             json_data["volume"] = total_milliliters
-            json_data["date"] = 888
+            json_data["date"] = time.time()*1000
             json_string = json.dumps(json_data, indent=2)
+            response = requests.post(url_login, json=login_data)
+            response_json = response.json()
+            access_token = response_json.get('access_token')
+            #print("Access Token:", access_token)
             print(json_string)
             headers = {
                 'Content-Type': 'application/json',
-                'Authorization': f'Bearer {token}'
+                'Authorization': f'Bearer {access_token}'
             }
 
             response = requests.post(url, json=json_data, headers=headers)

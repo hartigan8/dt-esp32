@@ -9,8 +9,13 @@ ssid = "Zyxel_4A61"
 password = "QXLYLP83ML"
 unit_kg = '2'
 json_data = {}
-url = "https://deudtchronicillness.eastus2.cloudapp.azure.com/weight"
-token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJpYXQiOjE3MDI4Mzk3MjUsImV4cCI6MjMwMjgzOTY2NX0.7JiVID9sT-IOkXo5d6UEtlquxvv0pyERHhY3zwk54u0"
+url_login = "https://deudthealthcare.eastus.cloudapp.azure.com/auth/login"
+url_weight = "https://deudthealthcare.eastus.cloudapp.azure.com/weight"
+login_data = {
+    "email": "patient@patient.com",
+    "password": "pwd"
+}
+
 
 def connect_wifi(ssid, password):
     try:
@@ -55,14 +60,18 @@ class ScanDelegate(DefaultDelegate):
                     if measure_done(value) == 1:
                         json_data["measure"] = raw_data_kg(value)
                         json_data["unit"] = unit_of_measure(value)
-                        json_data["date"] = 321321321
+                        json_data["date"] = time.time()*1000
                         json_string = json.dumps(json_data, indent=2)  # 'indent' is optional for pretty-printing
+                        response = requests.post(url_login, json=login_data)
+                        response_json = response.json()
+                        access_token = response_json.get('access_token')
+                        #print("Access Token:", access_token)
                         print(json_string)
                         headers = {
                             'Content-Type': 'application/json',
-                            'Authorization': f'Bearer {token}'
+                            'Authorization': f'Bearer {access_token}'
                         }
-                        response = requests.post(url, json=json_data, headers=headers)
+                        response = requests.post(url_weight, json=json_data, headers=headers)
                         try:
                             response_json = response.json()
                             if response.status_code == 200:
@@ -73,6 +82,11 @@ class ScanDelegate(DefaultDelegate):
                                 print("Response content:", response_json)
                         except json.JSONDecodeError:
                             print(f"Error decoding JSON. Response content: {response.text}")
+
+
+
+
+
 
 
 # create a scanner object that sends BLE broadcast packets to the ScanDelegate
